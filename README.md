@@ -23,7 +23,7 @@ This is a simple demo showing how AI can classify skincare products automaticall
    - `data/categorized_products.csv`
    - `data/sales_trends.csv`
 
-You can then load both CSVs into Power BI and make charts like:
-- Sales trend by category  
-- Average confidence by product type  
-- Total product count by category  
+3. Run the app ins streamlit:
+   ```bash
+   streamlit run app.py
+   ```
