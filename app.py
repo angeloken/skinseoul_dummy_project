@@ -19,7 +19,7 @@ def load_data():
 df = load_data()
 
 # --- Header ---
-st.title("💄 SkinSeoul AI Categorization Dashboard")
+st.title("SkinSeoul AI Categorization Dashboard")
 st.markdown(
     """
     This dashboard visualizes the AI-based product categorization results for **SkinSeoul**'s e-commerce dataset.
@@ -28,14 +28,14 @@ st.markdown(
 )
 
 # --- Sidebar filters ---
-st.sidebar.header("🔍 Filters")
+st.sidebar.header("Filters")
 categories = df["category"].dropna().unique().tolist()
 selected_category = st.sidebar.multiselect("Select Category", categories, default=categories)
 min_conf = st.sidebar.slider("Minimum Confidence", 0.0, 1.0, 0.5)
 df_filtered = df[(df["category"].isin(selected_category)) & (df["confidence"] >= min_conf)]
 
 # --- KPIs ---
-st.subheader("📈 Key Metrics")
+st.subheader("Key Metrics")
 col1, col2, col3 = st.columns(3)
 col1.metric("Total Products", len(df_filtered))
 col2.metric("Average Confidence", f"{df_filtered['confidence'].mean():.2f}")
@@ -56,7 +56,7 @@ col2.plotly_chart(fig_conf, use_container_width=True)
 
 # --- Price trend ---
 if "price" in df_filtered.columns:
-    st.subheader("💰 Price by Category")
+    st.subheader("Price by Category")
     fig_price = px.bar(
         df_filtered.groupby("category", as_index=False)["price"].mean(),
         x="category",
@@ -66,8 +66,41 @@ if "price" in df_filtered.columns:
     )
     st.plotly_chart(fig_price, use_container_width=True)
 
+# --- Confidence Trend Over Time (Simulated) ---
+st.subheader("AI Confidence Trend Over Time")
+
+# simulate model run dates (for demo)
+import numpy as np
+import datetime
+
+# assign fake run dates (last 7 days)
+if "run_date" not in df_filtered.columns:
+    today = datetime.date.today()
+    df_filtered["run_date"] = [
+        today - datetime.timedelta(days=int(x))
+        for x in np.linspace(0, 6, len(df_filtered))
+    ]
+
+# group by date and calculate average confidence
+trend_df = df_filtered.groupby("run_date", as_index=False)["confidence"].mean()
+
+fig_trend = px.line(
+    trend_df,
+    x="run_date",
+    y="confidence",
+    markers=True,
+    title="Average Model Confidence per Day"
+)
+fig_trend.update_traces(line_color="#F06292", line_width=3)
+st.plotly_chart(fig_trend, use_container_width=True)
+
+st.caption(
+    " This chart shows how the AI model's average confidence changes over time. "
+    "It simulates daily categorization runs to monitor performance and consistency."
+)
+
 # --- Product Table ---
-st.subheader("🧴 Product Details")
+st.subheader("Product Details")
 st.dataframe(
     df_filtered[["product_name", "description", "category", "confidence", "price"]],
     use_container_width=True,
@@ -76,7 +109,7 @@ st.dataframe(
 
 # --- Optional AI summary (just for show) ---
 st.markdown("---")
-if st.button("🪄 Generate Summary Insight"):
+if st.button("Generate Summary Insight"):
     top_cat = df_filtered["category"].value_counts().idxmax()
     avg_conf = df_filtered["confidence"].mean()
     st.success(
