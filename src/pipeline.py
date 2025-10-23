@@ -1,7 +1,5 @@
 from src.data_utils import load_products, save_results
 from src.categorizer import categorize_product
-from src.trend_generator import create_sales_data
-
 def run_pipeline():
     df = load_products("data/products.csv")
     categories = []
@@ -14,7 +12,6 @@ def run_pipeline():
     df["category"] = categories
     df["confidence"] = confidences
     save_results(df, "data/categorized_products.csv")
-    create_sales_data(df)
     print("Pipeline completed successfully!")
 
 if __name__ == "__main__":
