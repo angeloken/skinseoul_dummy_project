@@ -4,7 +4,6 @@ import plotly.express as px
 
 st.set_page_config(
     page_title="SkinSeoul AI Categorization Dashboard",
-    page_icon="💄",
     layout="wide"
 )
 
@@ -65,39 +64,6 @@ if "price" in df_filtered.columns:
         title="Average Price by Category"
     )
     st.plotly_chart(fig_price, use_container_width=True)
-
-# --- Confidence Trend Over Time (Simulated) ---
-st.subheader("AI Confidence Trend Over Time")
-
-# simulate model run dates (for demo)
-import numpy as np
-import datetime
-
-# assign fake run dates (last 7 days)
-if "run_date" not in df_filtered.columns:
-    today = datetime.date.today()
-    df_filtered["run_date"] = [
-        today - datetime.timedelta(days=int(x))
-        for x in np.linspace(0, 6, len(df_filtered))
-    ]
-
-# group by date and calculate average confidence
-trend_df = df_filtered.groupby("run_date", as_index=False)["confidence"].mean()
-
-fig_trend = px.line(
-    trend_df,
-    x="run_date",
-    y="confidence",
-    markers=True,
-    title="Average Model Confidence per Day"
-)
-fig_trend.update_traces(line_color="#F06292", line_width=3)
-st.plotly_chart(fig_trend, use_container_width=True)
-
-st.caption(
-    " This chart shows how the AI model's average confidence changes over time. "
-    "It simulates daily categorization runs to monitor performance and consistency."
-)
 
 # --- Product Table ---
 st.subheader("Product Details")

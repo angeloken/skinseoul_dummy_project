@@ -1,9 +1,11 @@
 # src/categorizer.py
 import openai
 import random
-from src.config import OPENAI_API_KEY, MODEL, CATEGORIES
+from src.config import MODEL, CATEGORIES
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+import re
 
-openai.api_key = OPENAI_API_KEY
+#openai.api_key = OPENAI_API_KEY
 cache = {}
 
 # simple keyword fallback rules (K-beauty friendly)
@@ -24,6 +26,12 @@ KEYWORD_MAP = {
     "eye": "Eye Care"
 }
 
+# Load model and tokenizer
+print("Loading local LLM. This may take a few minutes...")
+tokenizer = AutoTokenizer.from_pretrained(MODEL)
+model = AutoModelForCausalLM.from_pretrained(MODEL, device_map="auto")
+classifier = pipeline("text-generation", model=model, tokenizer=tokenizer)
+
 def keyword_fallback(name, desc):
     text = (name + " " + desc).lower()
     for word, cat in KEYWORD_MAP.items():
@@ -42,12 +50,25 @@ def make_prompt(name, desc):
     )
     return prompt
 
+def hf_classify(prompt):
+    """Run local LLM for classification"""
+    result = classifier(prompt, max_new_tokens=20, do_sample=False)
+    return result[0]["generated_text"].strip()
+
+def extract_category_from_raw(raw, categories):
+    # Take only the last non-empty line
+    lines = [line.strip() for line in raw.splitlines() if line.strip()]
+    last_line = lines[-1] if lines else ""
+    
+    # Compare with categories using word boundary
+    for cat in categories:
+        pattern = r'\b' + re.escape(cat.lower()) + r'\b'
+        if re.search(pattern, last_line.lower()):
+            return cat
+    return None
+
+
 def dynamic_confidence(name, desc, chosen):
-    """
-    Generate more realistic confidence scores:
-    - higher when keyword & model agree
-    - slightly random variation (0.75–0.95)
-    """
     text = (name + " " + desc).lower()
     keywords = [k for k in KEYWORD_MAP.keys() if k in text]
 
@@ -68,34 +89,32 @@ def categorize_product(name, desc):
         return cache[key]
 
     # get fallback
-    fallback = keyword_fallback(name, desc)
     chosen = None
 
     prompt = make_prompt(name, desc)
     try:
-        response = openai.ChatCompletion.create(
-            model=MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.0,
-            max_tokens=20,
-        )
-        raw = response["choices"][0]["message"]["content"].strip()
-        print(f"[model raw] {name}: {raw}")
-
-        for cat in CATEGORIES:
-            if cat.lower() in raw.lower():
-                chosen = cat
-                break
+        # response = openai.ChatCompletion.create(
+        #     model=MODEL,
+        #     messages=[{"role": "user", "content": prompt}],
+        #     temperature=0.0,
+        #     max_tokens=20,
+        # )
+        # raw = response["choices"][0]["message"]["content"].strip()
+        # print(f"[model raw] {name}: {raw}")
+        raw = hf_classify(prompt)
+        chosen = extract_category_from_raw(raw, CATEGORIES)
+        print(f"[model raw] {name}: {chosen}")
         if not chosen:
+            fallback = keyword_fallback(name, desc)
             chosen = fallback or "Other"
 
-
+        conf = dynamic_confidence(name, desc, chosen)
     except Exception as e:
         print("API error:", e)
         chosen = fallback or "Other"
         conf = random.uniform(0.4, 0.55)
 
-    conf = dynamic_confidence(name, desc, chosen)
+    
     result = (chosen, round(conf, 2))
     cache[key] = result
     return result
