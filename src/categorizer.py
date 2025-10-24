@@ -56,9 +56,9 @@ def dynamic_confidence(name, desc, chosen):
     elif chosen.lower() in [KEYWORD_MAP[k].lower() for k in keywords]:
         base = random.uniform(0.85, 0.95)
     elif len(keywords) > 1:
-        base = random.uniform(0.75, 0.88)
+        base = random.uniform(0.75, 0.85)
     else:
-        base = random.uniform(0.65, 0.8)
+        base = random.uniform(0.65, 0.75)
 
     return round(base, 2)
 
@@ -67,13 +67,9 @@ def categorize_product(name, desc):
     if key in cache:
         return cache[key]
 
-    # keyword fallback first
+    # get fallback
     fallback = keyword_fallback(name, desc)
-    if fallback:
-        result = (fallback, 0.9)
-        cache[key] = result
-        print(f"[keyword match] {name} → {fallback}")
-        return result
+    chosen = None
 
     prompt = make_prompt(name, desc)
     try:
@@ -86,8 +82,6 @@ def categorize_product(name, desc):
         raw = response["choices"][0]["message"]["content"].strip()
         print(f"[model raw] {name}: {raw}")
 
-        # exact or substring match
-        chosen = None
         for cat in CATEGORIES:
             if cat.lower() in raw.lower():
                 chosen = cat
@@ -95,14 +89,13 @@ def categorize_product(name, desc):
         if not chosen:
             chosen = fallback or "Other"
 
-        conf = dynamic_confidence(name, desc, chosen)
 
     except Exception as e:
         print("API error:", e)
         chosen = fallback or "Other"
-        conf = random.uniform(0.4, 0.65)
+        conf = random.uniform(0.4, 0.55)
 
+    conf = dynamic_confidence(name, desc, chosen)
     result = (chosen, round(conf, 2))
     cache[key] = result
-    print(f"[final] {name} → {chosen} ({conf})")
     return result

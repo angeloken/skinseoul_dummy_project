@@ -5,10 +5,13 @@ def run_pipeline():
     categories = []
     confidences = []
     for _, row in df.iterrows():
-        print(f"Processing {row['product_name']}...")
-        cat, conf = categorize_product(row["product_name"], row["description"])
+        name = str(row["product_name"])
+        desc = str(row["description"])
+        print(f"Processing {name}...")
+        cat, conf = categorize_product(name, desc)
         categories.append(cat)
         confidences.append(conf)
+        print(f"[final] {name} → {cat} ({conf})")
     df["category"] = categories
     df["confidence"] = confidences
     save_results(df, "data/categorized_products.csv")
